@@ -1,4 +1,4 @@
-# Notficador-de-novo-freela-workana
+# Notificador-de-novo-freela-workana
 Versão Final Sem Interface
 
 Esse notificador independe de requisições para o site Workana, logo, o fluxo de funcionamente (moderadamente) não é barrado.
