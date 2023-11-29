@@ -1,58 +1,27 @@
 from selenium import webdriver
-import time
 from PIL import Image
 from itertools import zip_longest
-import os
 import pytesseract
 from winotify import Notification, audio
 from selenium.webdriver.chrome.options import Options
-#from selenium.webdriver.common.action_chains import ActionChains
+import sqlite3
 
-def dividir_imagem_verticalmente(imagem):
-    largura, altura = imagem.size
-    altura_parte = altura // 3
+import re
+from time import sleep
+import os
 
-    partes = []
-    for i in range(3):
-        y1 = i * altura_parte
-        y2 = (i + 1) * altura_parte
+try:
+    banco = sqlite3.connect('Workana.db')
+    cursor = banco.cursor()
+    cursor.execute("SELECT * FROM freelas")
+    x = 0
 
-        parte = imagem.crop((0, y1, largura, y2))
-        partes.append(parte)
+except:
+    banco = sqlite3.connect('Workana.db')
+    cursor = banco.cursor()
+    cursor.execute("CREATE TABLE freelas (resumo text, informações text, verificar text)")
+    x = 1
 
-    return partes
-
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-
-driver = webdriver.Chrome(chrome_options)
-
-# Navega para a página desejada
-driver.get("https://www.workana.com/jobs?category=it-programming&has_few_bids=1&language=pt&publication=1d&skills=python&subcategory=web-development%2Cdata-science-1%2Cdesktop-apps")
-
-#actions = ActionChains(driver)
-#actions.move_by_offset(600, 850).click().perform()
-
-time.sleep(2)
-
-driver.find_element('xpath',"//button[text()='Aceitar todos os cookies']").click()
-driver.find_element('xpath',"//span[contains(@class,'wk2-icon')]").click()
-driver.execute_script("document.body.style.zoom = '0.75';")
-driver.execute_script("document.body.style.textTransform = 'uppercase';")
-driver.execute_script("document.body.style.fontWeight = 'bold';")
-driver.set_window_size(480, 1080)
-excluir1 = driver.find_element('xpath',"//nav[contains(@class,'navbar')]")
-excluir2 = driver.find_elements('xpath',"//a[contains(@class,'btn')]")
-excluir3 = driver.find_elements('xpath',"//div[contains(@class,'skills')]")
-driver.execute_script("arguments[0].remove()", excluir1)
-
-for item2, item3 in zip_longest(excluir2, excluir3, fillvalue=None):
-    if item2:
-        driver.execute_script("arguments[0].remove()", item2)
-    if item3:
-        driver.execute_script("arguments[0].remove()", item3)
-
-driver.execute_script("window.scrollBy(0, 566)")
 
 diretorio_atual = os.getcwd()
 pasta_imagens = os.path.join(diretorio_atual, 'imagens')
@@ -60,47 +29,103 @@ pasta_imagens = os.path.join(diretorio_atual, 'imagens')
 if not os.path.exists(pasta_imagens):
     os.makedirs(pasta_imagens)
 
-driver.save_screenshot("imagens\\screenshot.png")
+
+def salvar_e_notificar(resumo, informações, verificar):
+        cursor.execute("INSERT INTO freelas (resumo, informações, verificar) VALUES (?, ?, ?)", (str(resumo), str(informações), str(verificar)))
+        banco.commit()
+        notificação = Notification(app_id='Novo freela', title='Novo freela', msg=resumo, duration= 'short')
+        notificação.set_audio(audio.LoopingAlarm, loop=False)
+        notificação.show()
+
+
+def remover_numeros(texto):
+    return re.sub(r'\d+', '', texto)
+
+
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+driver = webdriver.Chrome(chrome_options)
+
+driver.get("https://www.workana.com/jobs?category=it-programming&has_few_bids=1&language=pt&publication=1d&skills=python&subcategory=web-development%2Cdata-science-1%2Cdesktop-apps")
+
+sleep(1)
+
+driver.find_element('xpath',"//button[text()='Aceitar todos os cookies']").click()
+driver.find_element('xpath',"//span[contains(@class,'wk2-icon')]").click()
+driver.execute_script("document.body.style.zoom = '1.1';")
+driver.execute_script("document.body.style.textTransform = 'uppercase';")
+driver.execute_script("document.body.style.fontWeight = 'bold';")
+driver.set_window_size(880, 1080)
+excluir1 = driver.find_element('xpath',"//nav[contains(@class,'navbar')]")
+excluir2 = driver.find_elements('xpath',"//a[contains(@class,'btn')]")
+excluir3 = driver.find_elements('xpath',"//div[contains(@class,'skills')]")
+excluir4 = driver.find_elements('xpath',"//div[contains(@class,'project-author')]")
+excluir5 = driver.find_elements('xpath',"//a[contains(@data-content,'Lembre-se que o orçamento serve apenas como guia')]")
+
+driver.execute_script("arguments[0].remove()", excluir1)
+
+for item2, item3, item4, item5 in zip_longest(excluir2, excluir3, excluir4, excluir5, fillvalue=None):
+    if item2:
+        driver.execute_script("arguments[0].remove()", item2)
+    if item3:
+        driver.execute_script("arguments[0].remove()", item3)
+    if item4:
+        driver.execute_script("arguments[0].remove()", item4)
+    if item5:
+        driver.execute_script("arguments[0].remove()", item5)
+
+driver.execute_script(f"window.scrollBy(0, 690)")
+div_elements = driver.find_elements('xpath',"//div[contains(@class,'project-item')]")
+altura_janela = driver.execute_script("return window.innerHeight;")
+altura_body = driver.execute_script("return document.body.scrollHeight;")
+div_elements = div_elements[:3]
+
+i = 0
+mo = 0
+
+for div in div_elements:
+    i += 1
+    div_size = div.size
+    driver.save_screenshot('imagens\\screenshot.png')
+
+    screenshot = Image.open('imagens\\screenshot.png')
+    div_screenshot = screenshot.crop((0, 0, 860, div_size['height'] + 30))
+    div_screenshot.save(f'imagens\\screenshot{i}.png')
+
+    mo += div_size['height'] + 60
+    driver.execute_script(f"window.scrollBy(0, {mo})")
 
 driver.quit()
 
-imagem = Image.open("imagens\\screenshot.png")
-
-partes = dividir_imagem_verticalmente(imagem)
-
-for i, parte in enumerate(partes):
-    parte.save(f"imagens\\parte{i+1}.png")
-
-
-if os.path.exists("imagens\\screenshot.png"):
-    os.remove("imagens\\screenshot.png")
-    print("Arquivo excluído com sucesso.")
-
-else:
-    print("O arquivo não existe.")
-
-import pytesseract
-
-pytesseract.pytesseract.tesseract_cmd = "C:\\Users\\Gabriel\\AppData\\Local\\Programs\\Tesseract-OCR\\tesseract.exe"
+pytesseract.pytesseract.tesseract_cmd = ""
 
 for c in range(3):
-
-    image = Image.open(f"imagens\\parte{str(c+1)}.png")
-
+    image = Image.open(f"imagens\\screenshot{str(c+1)}.png")
     texto = pytesseract.image_to_string(image).lower()
-
     linhas = texto.splitlines()
-
     resumo_linhas = linhas[0:3]
+    resumo=''
 
-    resumo = ""
+    for linha in resumo_linhas:
+        resumo += linha + '\n'
 
-    for linha in linhas:
-        resumo += linha + "\n"
+    verificar = remover_numeros(texto)
 
-    notificação = Notification(app_id='Novo freela', title='Novo freela', msg=resumo, duration= 'short')
-    notificação.set_audio(audio.Mail, loop=False)
-    notificação.show()
+    if x == 0:
+        consulta = "SELECT * FROM freelas WHERE verificar = ?"
+        cursor.execute(consulta, (str(verificar),))
+        verificação = cursor.fetchall()
 
-    time.sleep(5)
+        if not verificação:
+            sleep(5)
+            salvar_e_notificar(resumo, texto, verificar)
 
+    else:
+        sleep(5)
+        salvar_e_notificar(resumo, texto, verificar)
+
+# Consulta para excluir os registros mais antigos
+cursor.execute(f"DELETE FROM freelas WHERE rowid NOT IN (SELECT rowid FROM freelas ORDER BY rowid DESC LIMIT {20})")
+
+banco.commit()
+banco.close()
