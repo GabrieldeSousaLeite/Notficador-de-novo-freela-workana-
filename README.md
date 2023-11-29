@@ -16,5 +16,4 @@ Para que o código funcione, é necessario passar o caminho do tesseract.exe na 
 Para personalização dos filtros de pesquisa de projetos na workana, é necessário copiar o link do site com os filtros já aplicados na pesquisa e colar na linha 49, que já conterá um link referência.
 
 CONDIÇÕES DE USO:
-Python 3.12.0
-Compilador C++ Vscode ou semelhante
+Python 3.12.0, Compilador C++ Vscode ou semelhante
