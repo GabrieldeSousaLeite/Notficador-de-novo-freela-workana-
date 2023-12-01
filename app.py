@@ -109,7 +109,7 @@ for c in range(3):
     for linha in resumo_linhas:
         resumo += linha + '\n'
 
-    verificar = remover_numeros(texto)
+    verificar = remover_numeros(linhas[0])
 
     if x == 0:
         consulta = "SELECT * FROM freelas WHERE verificar = ?"
@@ -125,7 +125,7 @@ for c in range(3):
         salvar_e_notificar(resumo, texto, verificar)
 
 # Consulta para excluir os registros mais antigos
-cursor.execute(f"DELETE FROM freelas WHERE rowid NOT IN (SELECT rowid FROM freelas ORDER BY rowid DESC LIMIT {20})")
+cursor.execute(f"DELETE FROM freelas WHERE rowid NOT IN (SELECT rowid FROM freelas ORDER BY rowid DESC LIMIT {6})")
 
 banco.commit()
 banco.close()
